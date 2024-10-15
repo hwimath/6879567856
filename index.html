@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>제곱근 게임</title>
+    <!-- MathJax 라이브러리 로드 -->
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" defer></script>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f0f8ff;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+        }
+        #start-screen, #game-screen, #end-screen {
+            display: none;
+            padding: 20px;
+        }
+        #start-screen.visible, #game-screen.visible, #end-screen.visible {
+            display: block;
+        }
+        h1 {
+            color: #2e8b57;
+            margin-bottom: 10px;
+        }
+        h2 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .button {
+            padding: 15px 25px;
+            font-size: 18px;
+            margin: 10px;
+            cursor: pointer;
+            border: none;
+            border-radius: 8px;
+            background-color: #20b2aa;
+            color: white;
+            transition: background-color 0.3s;
+        }
+        .button:hover {
+            background-color: #3cb371;
+        }
+        #energy-bar {
+            width: 100%;
+            height: 25px;
+            background-color: #eee;
+            margin: 20px 0;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        #energy {
+            height: 100%;
+            background-color: #ff6347;
+            width: 100%;
+            transition: width 0.2s linear;
+        }
+        #stats {
+            margin-top: 20px;
+            font-size: 18px;
+        }
+        #message {
+            font-size: 22px;
+            color: #dc143c;
+            margin-top: 20px;
+            min-height: 30px;
+        }
+        .question-container {
+            margin: 20px 0;
+            text-align: left;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .question {
+            font-size: 20px;
+            margin-bottom: 10px;
+        }
+        .options {
+            list-style-type: none;
+            padding: 0;
+        }
+        .options li {
+            margin: 10px 0;
+        }
+        .option-button {
+            padding: 10px 20px;
+            font-size: 18px;
+            cursor: pointer;
+            border: 2px solid #20b2aa;
+            border-radius: 8px;
+            background-color: white;
+            transition: background-color 0.3s, color 0.3s;
+            width: 100%;
+            text-align: left;
+        }
+        .option-button:hover {
+            background-color: #20b2aa;
+            color: white;
+        }
+        .option-button.correct {
+            background-color: #32cd32;
+            color: white;
+            border-color: #32cd32;
+        }
+        .option-button.incorrect {
+            background-color: #ff6347;
+            color: white;
+            border-color: #ff6347;
+        }
+        #next-button {
+            padding: 10px 20px;
+            font-size: 18px;
+            cursor: pointer;
+            border: none;
+            border-radius: 8px;
+            background-color: #32cd32;
+            color: white;
+            transition: background-color 0.3s;
+            display: none;
+            margin-top: 20px;
+        }
+        #next-button:hover {
+            background-color: #3cb371;
+        }
+        #results {
+            margin-top: 20px;
+            text-align: left;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            overflow-y: scroll;
+            max-height: 400px;
+        }
+        .result-item {
+            margin-bottom: 10px;
+        }
+        #answer-input {
+            padding: 10px;
+            font-size: 18px;
+            width: 80%;
+            max-width: 300px;
+            border: 2px solid #20b2aa;
+            border-radius: 8px;
+            margin-top: 10px;
+        }
+        #submit-answer {
+            padding: 10px 20px;
+            font-size: 18px;
+            margin-top: 10px;
+            cursor: pointer;
+            border: none;
+            border-radius: 8px;
+            background-color: #20b2aa;
+            color: white;
+            transition: background-color 0.3s;
+        }
+        #submit-answer:hover {
+            background-color: #3cb371;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 시작 화면 -->
+    <div id="start-screen" class="visible">
+        <h1>제곱근 게임</h1>
+        <h2>난이도를 선택하세요</h2>
+        <button class="button" onclick="startGame('highest')">최상</button>
+        <button class="button" onclick="startGame('high')">상</button>
+        <button class="button" onclick="startGame('medium')">중</button>
+        <button class="button" onclick="startGame('low')">하</button>
+    </div>
+
+    <!-- 게임 화면 -->
+    <div id="game-screen">
+        <h1>제곱근 게임</h1>
+        <div id="energy-bar">
+            <div id="energy"></div>
+        </div>
+        <div id="question-container">
+            <!-- 현재 문제가 여기 표시됩니다 -->
+        </div>
+        <div id="message"></div>
+        <button id="next-button" onclick="nextQuestion()">다음 문제</button>
+        <div id="stats">
+            <p>점수: <span id="score">0</span></p>
+            <p>남은 기회: <span id="lives">3</span></p>
+            <p>총 게임 시간: <span id="game-time">0</span>초</p>
+        </div>
+    </div>
+
+    <!-- 종료 화면 -->
+    <div id="end-screen">
+        <h1>게임 종료!</h1>
+        <p>최종 점수: <span id="final-score">0</span></p>
+        <p>총 게임 시간: <span id="final-time">0</span>초</p>
+        <div id="results">
+            <h2>정답 확인</h2>
+            <!-- 정답 결과가 여기 표시됩니다 -->
+        </div>
+        <button class="button" onclick="restartGame()">다시 시작</button>
+    </div>
+
+    <script>
+        window.onload = function() {
+            // 난이도별 설정
+            const difficultySettings = {
+                'highest': { time: 20, points: 20 },
+                'high': { time: 30, points: 15 },
+                'medium': { time: 40, points: 10 },
+                'low': { time: null, points: 5 } // '하' 난이도는 시간 제한 없음
+            };
+            let difficulty;
+            let timeLimit;
+            let score = 0;
+            let lives = 3;
+            let totalGameTime = 0;
+            let gameInterval;
+            let energyInterval;
+            let gameStartTime;
+
+            let currentQuestionIndex = 0;
+            let shuffledQuestions = [];
+
+            // 문제 및 정답 데이터
+            const problems = [
+                 {
+        type: 'MCQ',
+        question: "다음을 계산하여라. \\((\\sqrt{2})^2\\)",
+        options: ["2", "\\(\\sqrt{2}\\)", "-2", "4"],
+        correctAnswer: "2"
+    },
+    {
+        type: 'MCQ',
+        question: "다음을 계산하여라. \\((-\\sqrt{2})^2\\)",
+        options: ["2", "-2", "\\(\\sqrt{2}\\)", "4"],
+        correctAnswer: "2"
+    },
+    {
+        type: 'MCQ',
+        question: "다음을 계산하여라. \\(-(-\\sqrt{3})^2\\)",
+        options: ["-3", "3", "-\\(\\sqrt{3}\\)", "9"],
+        correctAnswer: "-3"
+    },
+    {
+        type: 'MCQ',
+        question: "다음을 계산하여라. \\(-\\left(\\sqrt{\\dfrac{3}{5}}\\right)^2\\)",
+        options: ["\\(-\\dfrac{3}{5}\\)", "\\(\\dfrac{3}{5}\\)", "-\\(\\sqrt{\\dfrac{3}{5}}\\)", "\\(-\\dfrac{5}{3}\\)"],
+        correctAnswer: "\\(-\\dfrac{3}{5}\\)"
+    },
+    {
+        type: 'MCQ',
+        question: "다음을 계산하여라. \\(-(-\\sqrt{0.23})^2\\)",
+        options: ["-0.23", "0.23", "-\\(\\sqrt{0.23}\\)", "-0.046"],
+        correctAnswer: "-0.23"
+    },
+    {
+        type: 'MCQ',
+        question: "다음을 계산하여라. \\((\\sqrt{5})^2\\)",
+        options: ["5", "\\(\\sqrt{5}\\)", "-5", "25"],
+        correctAnswer: "5"
+    },
+    {
+        type: 'MCQ',
+        question: "다음을 계산하여라. \\((-\\sqrt{5})^2\\)",
+        options: ["5", "-5", "\\(\\sqrt{5}\\)", "25"],
+        correctAnswer: "5"
+    },
+    {
+        type: 'MCQ',
+        question: "다음을 계산하여라. \\(-(-\\sqrt{7})^2\\)",
+        options: ["-7", "7", "-\\(\\sqrt{7}\\)", "49"],
+        correctAnswer: "-7"
+    },
+    {
+        type: 'MCQ',
+        question: "다음을 계산하여라. \\(-\\left(\\sqrt{\\dfrac{2}{3}}\\right)^2\\)",
+        options: ["\\(-\\dfrac{2}{3}\\)", "\\(\\dfrac{2}{3}\\)", "-\\(\\sqrt{\\dfrac{2}{3}}\\)", "\\(-\\dfrac{3}{2}\\)"],
+        correctAnswer: "\\(-\\dfrac{2}{3}\\)"
+    },
+    {
+        type: 'MCQ',
+        question: "다음을 계산하여라. \\(-(-\\sqrt{0.81})^2\\)",
+        options: ["-0.81", "0.81", "-\\(\\sqrt{0.81}\\)", "-1.62"],
+        correctAnswer: "-0.81"
+    },
+    {
+        type: 'MCQ',
+        question: "다음을 계산하여라. \\((\\sqrt{11})^2\\)",
+        options: ["11", "\\(\\sqrt{11}\\)", "-11", "121"],
+        correctAnswer: "11"
+    },
+    {
+        type: 'MCQ',
+        question: "다음을 계산하여라. \\((-\\sqrt{11})^2\\)",
+        options: ["11", "-11", "\\(\\sqrt{11}\\)", "121"],
+        correctAnswer: "11"
+    },
+    {
+        type: 'MCQ',
+        question: "다음을 계산하여라. \\(-(-\\sqrt{13})^2\\)",
+        options: ["-13", "13", "-\\(\\sqrt{13}\\)", "169"],
+        correctAnswer: "-13"
+    },
+    {
+        type: 'MCQ',
+        question: "다음을 계산하여라. \\(-\\left(\\sqrt{\\dfrac{4}{9}}\\right)^2\\)",
+        options: ["\\(-\\dfrac{4}{9}\\)", "\\(\\dfrac{4}{9}\\)", "-\\(\\sqrt{\\dfrac{4}{9}}\\)", "\\(-\\dfrac{9}{4}\\)"],
+        correctAnswer: "\\(-\\dfrac{4}{9}\\)"
+    },
+    {
+        type: 'MCQ',
+        question: "다음을 계산하여라. \\(-(-\\sqrt{0.04})^2\\)",
+        options: ["-0.04", "0.04", "-\\(\\sqrt{0.04}\\)", "-0.08"],
+        correctAnswer: "-0.04"
+    },
+    {
+        type: 'MCQ',
+        question: "다음을 계산하여라. \\((\\sqrt{17})^2\\)",
+        options: ["17", "\\(\\sqrt{17}\\)", "-17", "289"],
+        correctAnswer: "17"
+    },
+    {
+        type: 'MCQ',
+        question: "다음을 계산하여라. \\((-\\sqrt{17})^2\\)",
+        options: ["17", "-17", "\\(\\sqrt{17}\\)", "289"],
+        correctAnswer: "17"
+    },
+    {
+        type: 'MCQ',
+        question: "다음을 계산하여라. \\(-(-\\sqrt{19})^2\\)",
+        options: ["-19", "19", "-\\(\\sqrt{19}\\)", "361"],
+        correctAnswer: "-19"
+    },
+    {
+        type: 'MCQ',
+        question: "다음을 계산하여라. \\(-\\left(\\sqrt{\\dfrac{5}{8}}\\right)^2\\)",
+        options: ["\\(-\\dfrac{5}{8}\\)", "\\(\\dfrac{5}{8}\\)", "-\\(\\sqrt{\\dfrac{5}{8}}\\)", "\\(-\\dfrac{8}{5}\\)"],
+        correctAnswer: "\\(-\\dfrac{5}{8}\\)"
+    },
+    {
+        type: 'MCQ',
+        question: "다음을 계산하여라. \\(-(-\\sqrt{0.16})^2\\)",
+        options: ["-0.16", "0.16", "-\\(\\sqrt{0.16}\\)", "-0.32"],
+        correctAnswer: "-0.16"
+    },
+    {
+        type: 'MCQ',
+        question: "다음을 계산하여라. \\((\\sqrt{23})^2\\)",
+        options: ["23", "\\(\\sqrt{23}\\)", "-23", "529"],
+        correctAnswer: "23"
+    },
+    {
+        type: 'MCQ',
+        question: "다음을 계산하여라. \\((-\\sqrt{23})^2\\)",
+        options: ["23", "-23", "\\(\\sqrt{23}\\)", "529"],
+        correctAnswer: "23"
+    },
+    {
+        type: 'MCQ',
+        question: "다음을 계산하여라. \\(-(-\\sqrt{29})^2\\)",
+        options: ["-29", "29", "-\\(\\sqrt{29}\\)", "841"],
+        correctAnswer: "-29"
+    },
+    {
+        type: 'MCQ',
+        question: "다음을 계산하여라. \\(-\\left(\\sqrt{\\dfrac{7}{9}}\\right)^2\\)",
+        options: ["\\(-\\dfrac{7}{9}\\)", "\\(\\dfrac{7}{9}\\)", "-\\(\\sqrt{\\dfrac{7}{9}}\\)", "\\(-\\dfrac{9}{7}\\)"],
+        correctAnswer: "\\(-\\dfrac{7}{9}\\)"
+    },
+    {
+        type: 'MCQ',
+        question: "다음을 계산하여라. \\(-(-\\sqrt{0.25})^2\\)",
+        options: ["-0.25", "0.25", "-\\(\\sqrt{0.25}\\)", "-0.5"],
+        correctAnswer: "-0.25"
+    },
+
+    // 유형 2: 근호를 사용하지 않고 나타내기 (25개)
+    {
+        type: 'MCQ',
+        question: "다음을 근호를 사용하지 않고 나타내어라. \\(\\sqrt{121}\\)",
+        options: ["11", "\\(\\sqrt{11}\\)", "-11", "121"],
+        correctAnswer: "11"
+    },
+    {
+        type: 'MCQ',
+        question: "다음을 근호를 사용하지 않고 나타내어라. \\(-\\sqrt{\\dfrac{1}{4}}\\)",
+        options: ["\\(-\\dfrac{1}{2}\\)", "\\(\\dfrac{1}{2}\\)", "\\(-\\dfrac{1}{4}\\)", "\\(\\dfrac{1}{4}\\)"],
+        correctAnswer: "\\(-\\dfrac{1}{2}\\)"
+    },
+    {
+        type: 'MCQ',
+        question: "다음을 근호를 사용하지 않고 나타내어라. \\(\\sqrt{0.09}\\)",
+        options: ["0.3", "-0.3", "0.09", "\\(\\sqrt{0.3}\\)"],
+        correctAnswer: "0.3"
+    },
+    {
+        type: 'MCQ',
+        question: "다음을 근호를 사용하지 않고 나타내어라. \\(\\sqrt{(-17)^2}\\)",
+        options: ["17", "-17", "289", "\\(\\sqrt{17}\\)"],
+        correctAnswer: "17"
+    },
+    {
+        type: 'MCQ',
+        question: "다음을 근호를 사용하지 않고 나타내어라. \\((-\\sqrt{7})^2\\)",
+        options: ["7", "-7", "\\(\\sqrt{7}\\)", "49"],
+        correctAnswer: "7"
+    },
+    {
+        type: 'MCQ',
+        question: "다음을 근호를 사용하지 않고 나타내어라. \\(-(-\\sqrt{3})^2\\)",
+        options: ["-3", "3", "-\\(\\sqrt{3}\\)", "9"],
+        correctAnswer: "-3"
+    },
+    {
+        type: 'MCQ',
+        question: "다음을 근호를 사용하지 않고 나타내어라. \\(\\sqrt{64}\\)",
+        options: ["8", "-8", "\\(\\sqrt{8}\\)", "64"],
+        correctAnswer: "8"
+    },
+    {
+        type: 'MCQ',
+        question: "다음을 근호를 사용하지 않고 나타내어라. \\(-\\sqrt{\\dfrac{1}{9}}\\)",
+        options: ["\\(-\\dfrac{1}{3}\\)", "\\(\\dfrac{1}{3}\\)", "\\(-\\dfrac{1}{9}\\)", "\\(\\dfrac{1}{9}\\)"],
+        correctAnswer: "\\(-\\dfrac{1}{3}\\)"
+    },
+    {
+        type: 'MCQ',
+        question: "다음을 근호를 사용하지 않고 나타내어라. \\(\\sqrt{0.36}\\)",
+        options: ["0.6", "-0.6", "0.18", "\\(\\sqrt{0.6}\\)"],
+        correctAnswer: "0.6"
+    },
+    {
+        type: 'MCQ',
+        question: "다음을 근호를 사용하지 않고 나타내어라. \\(\\sqrt{(-8)^2}\\)",
+        options: ["8", "-8", "64", "\\(\\sqrt{8}\\)"],
+        correctAnswer: "8"
+    },
+    {
+        type: 'MCQ',
+        question: "다음을 근호를 사용하지 않고 나타내어라. \\((-\\sqrt{5})^2\\)",
+        options: ["5", "-5", "\\(\\sqrt{5}\\)", "25"],
+        correctAnswer: "5"
+    },
+    {
+        type: 'MCQ',
+        question: "다음을 근호를 사용하지 않고 나타내어라. \\(-(-\\sqrt{4})^2\\)",
+        options: ["-4", "4", "-\\(\\sqrt{4}\\)", "16"],
+        correctAnswer: "-4"
+    },
+    {
+        type: 'MCQ',
+        question: "다음을 근호를 사용하지 않고 나타내어라. \\(\\sqrt{49}\\)",
+        options: ["7", "-7", "\\(\\sqrt{7}\\)", "49"],
+        correctAnswer: "7"
+    },
+    {
+        type: 'MCQ',
+        question: "다음을 근호를 사용하지 않고 나타내어라. \\(-\\sqrt{\\dfrac{1}{16}}\\)",
+        options: ["\\(-\\dfrac{1}{4}\\)", "\\(\\dfrac{1}{4}\\)", "\\(-\\dfrac{1}{16}\\)", "\\(\\dfrac{1}{16}\\)"],
+        correctAnswer: "\\(-\\dfrac{1}{4}\\)"
+    },
+    {
+        type: 'MCQ',
+        question: "다음을 근호를 사용하지 않고 나타내어라. \\(\\sqrt{0.25}\\)",
+        options: ["0.5", "-0.5", "0.125", "\\(\\sqrt{0.5}\\)"],
+        correctAnswer: "0.5"
+    },
+    {
+        type: 'MCQ',
+        question: "다음을 근호를 사용하지 않고 나타내어라. \\(\\sqrt{(-9)^2}\\)",
+        options: ["9", "-9", "81", "\\(\\sqrt{9}\\)"],
+        correctAnswer: "9"
+    },
+    {
+        type: 'MCQ',
+        question: "다음을 근호를 사용하지 않고 나타내어라. \\((-\\sqrt{11})^2\\)",
+        options: ["11", "-11", "\\(\\sqrt{11}\\)", "121"],
+        correctAnswer: "11"
+    },
+    {
+        type: 'MCQ',
+        question: "다음을 근호를 사용하지 않고 나타내어라. \\(-(-\\sqrt{2})^2\\)",
+        options: ["-2", "2", "-\\(\\sqrt{2}\\)", "4"],
+        correctAnswer: "-2"
+    },
+    {
+        type: 'MCQ',
+        question: "다음을 근호를 사용하지 않고 나타내어라. \\(\\sqrt{81}\\)",
+        options: ["9", "-9", "\\(\\sqrt{9}\\)", "81"],
+        correctAnswer: "9"
+    },
+    {
+        type: 'MCQ',
+        question: "다음을 근호를 사용하지 않고 나타내어라. \\(-\\sqrt{\\dfrac{1}{25}}\\)",
+        options: ["\\(-\\dfrac{1}{5}\\)", "\\(\\dfrac{1}{5}\\)", "\\(-\\dfrac{1}{25}\\)", "\\(\\dfrac{1}{25}\\)"],
+        correctAnswer: "\\(-\\dfrac{1}{5}\\)"
+    },
+    {
+        type: 'MCQ',
+        question: "다음을 근호를 사용하지 않고 나타내어라. \\(\\sqrt{0.49}\\)",
+        options: ["0.7", "-0.7", "0.245", "\\(\\sqrt{0.7}\\)"],
+        correctAnswer: "0.7"
+    },
+    {
+        type: 'MCQ',
+        question: "다음을 근호를 사용하지 않고 나타내어라. \\(\\sqrt{(-12)^2}\\)",
+        options: ["12", "-12", "144", "\\(\\sqrt{12}\\)"],
+        correctAnswer: "12"
+    },
+    {
+        type: 'MCQ',
+        question: "다음을 근호를 사용하지 않고 나타내어라. \\((-\\sqrt{13})^2\\)",
+        options: ["13", "-13", "\\(\\sqrt{13}\\)", "169"],
+        correctAnswer: "13"
+    },
+    {
+        type: 'MCQ',
+        question: "다음을 근호를 사용하지 않고 나타내어라. \\(-(-\\sqrt{6})^2\\)",
+        options: ["-6", "6", "-\\(\\sqrt{6}\\)", "36"],
+        correctAnswer: "-6"
+    },
+    {
+        type: 'MCQ',
+        question: "다음을 근호를 사용하지 않고 나타내어라. \\(\\sqrt{100}\\)",
+        options: ["10", "-10", "\\(\\sqrt{10}\\)", "100"],
+        correctAnswer: "10"
+    }
+            ];
+
+            // 문제 수를 50개로 맞추기 위해 랜덤하게 추가
+            while (problems.length < 50) {
+                let num = Math.floor(Math.random() * 100) + 1;
+                let sqrtNum = Math.sqrt(num);
+                let questionType = Math.floor(Math.random() * 3);
+                let question, options, correctAnswer;
+
+                if (Number.isInteger(sqrtNum)) {
+                    switch (questionType) {
+                        case 0:
+                            question = `\\(${num}\\)의 제곱근을 구하여라.`;
+                            correctAnswer = `\\(\\pm ${sqrtNum}\\)`;
+                            options = [
+                                correctAnswer,
+                                `\\(${sqrtNum}\\)`,
+                                `\\(-${sqrtNum}\\)`,
+                                `\\(${num}\\)`
+                            ];
+                            break;
+                        case 1:
+                            question = `양의 제곱근 \\(${num}\\)을 구하여라.`;
+                            correctAnswer = `\\(${sqrtNum}\\)`;
+                            options = [
+                                correctAnswer,
+                                `\\(-${sqrtNum}\\)`,
+                                `\\(\\pm ${sqrtNum}\\)`,
+                                `\\(${num}\\)`
+                            ];
+                            break;
+                        case 2:
+                            question = `음의 제곱근 \\(${num}\\)을 구하여라.`;
+                            correctAnswer = `\\(-${sqrtNum}\\)`;
+                            options = [
+                                correctAnswer,
+                                `\\(${sqrtNum}\\)`,
+                                `\\(\\pm ${sqrtNum}\\)`,
+                                `\\(-${num}\\)`
+                            ];
+                            break;
+                    }
+                    // 옵션을 섞고 정답 인덱스 설정
+                    options = shuffleArray(options);
+                    problems.push({
+                        type: 'MCQ',
+                        question: question,
+                        options: options,
+                        correctAnswer: correctAnswer
+                    });
+                }
+            }
+
+            // Function to start the game
+            window.startGame = function(selectedDifficulty) {
+                difficulty = selectedDifficulty;
+                timeLimit = difficultySettings[difficulty].time;
+                document.getElementById('start-screen').classList.remove('visible');
+                document.getElementById('game-screen').classList.add('visible');
+                score = 0;
+                lives = 3;
+                totalGameTime = 0;
+                currentQuestionIndex = 0;
+                shuffledQuestions = shuffleArray([...problems]); // 문제 목록 섞기
+                updateStats();
+                renderQuestion();
+                if (timeLimit !== null) {
+                    startEnergyBar();
+                } else {
+                    document.getElementById('energy-bar').style.display = 'none'; // 에너지 바 숨기기
+                }
+                gameStartTime = Date.now();
+                gameInterval = setInterval(() => {
+                    totalGameTime = Math.floor((Date.now() - gameStartTime) / 1000);
+                    document.getElementById('game-time').innerText = totalGameTime;
+                }, 1000);
+            }
+
+            // Function to shuffle the questions array and return a new array
+            function shuffleArray(array) {
+                for (let i = array.length - 1; i > 0; i--) {
+                    let j = Math.floor(Math.random() * (i + 1));
+                    [array[i], array[j]] = [array[j], array[i]];
+                }
+                return array;
+            }
+
+            // Function to render the current question
+            function renderQuestion() {
+                if (currentQuestionIndex >= shuffledQuestions.length) {
+                    endGame();
+                    return;
+                }
+                const container = document.getElementById('question-container');
+                container.innerHTML = '';
+                const currentQuestion = shuffledQuestions[currentQuestionIndex];
+
+                // 옵션을 랜덤하게 섞기
+                let options = shuffleArray([...currentQuestion.options]);
+                // 정답 인덱스 찾기
+                let correctAnswerIndex = options.indexOf(currentQuestion.correctAnswer);
+
+                // 현재 질문의 정답 인덱스를 저장
+                currentQuestion.answerIndex = correctAnswerIndex;
+
+                const div = document.createElement('div');
+                div.className = 'question-container';
+                div.innerHTML = `
+                    <div class="question">${currentQuestion.question}</div>
+                    <ul class="options">
+                        ${options.map((option, index) => `<li><button class="option-button" data-option-index="${index}">${option}</button></li>`).join('')}
+                    </ul>
+                `;
+                container.appendChild(div);
+                // 옵션 버튼에 이벤트 리스너 추가
+                const optionButtons = document.querySelectorAll('.option-button');
+                optionButtons.forEach(button => {
+                    button.addEventListener('click', function() {
+                        const selectedOptionIndex = parseInt(this.getAttribute('data-option-index'));
+                        checkAnswer(selectedOptionIndex);
+                    });
+                });
+                MathJax.typesetPromise();
+                document.getElementById('message').innerHTML = '';
+            }
+
+            // Function to check the selected answer
+            window.checkAnswer = function(selectedOptionIndex) {
+                const currentQuestion = shuffledQuestions[currentQuestionIndex];
+                let isCorrect = false;
+                let correctAnswerIndex = currentQuestion.answerIndex;
+
+                if (selectedOptionIndex === correctAnswerIndex) {
+                    isCorrect = true;
+                    score += difficultySettings[difficulty].points;
+                    document.getElementById('message').innerHTML = '정답입니다! 🎉';
+                } else {
+                    lives--;
+                    document.getElementById('message').innerHTML = `틀렸습니다! 정답은 <strong>${currentQuestion.options[correctAnswerIndex]}</strong>입니다. 😢`;
+                }
+
+                updateStats();
+                highlightOptions(selectedOptionIndex, correctAnswerIndex);
+                disableOptions();
+
+                // Show next button after a short delay
+                document.getElementById('next-button').style.display = 'inline-block';
+                if (lives <= 0) {
+                    endGame();
+                }
+            }
+
+            // Function to highlight options based on correctness
+            function highlightOptions(selectedOptionIndex, correctAnswerIndex) {
+                const buttons = document.querySelectorAll('.option-button');
+                buttons.forEach((button, index) => {
+                    if (index === correctAnswerIndex) {
+                        button.classList.add('correct');
+                    }
+                    if (index === selectedOptionIndex && selectedOptionIndex !== correctAnswerIndex) {
+                        button.classList.add('incorrect');
+                    }
+                });
+            }
+
+            // Function to disable all option buttons after selection
+            function disableOptions() {
+                const buttons = document.querySelectorAll('.option-button');
+                buttons.forEach(button => {
+                    button.disabled = true;
+                });
+            }
+
+            // Function to update the stats
+            function updateStats() {
+                document.getElementById('score').innerText = score;
+                document.getElementById('lives').innerText = lives;
+                document.getElementById('game-time').innerText = totalGameTime;
+            }
+
+            // Function to go to the next question
+            window.nextQuestion = function() {
+                currentQuestionIndex++;
+                renderQuestion();
+                document.getElementById('next-button').style.display = 'none';
+                if (timeLimit !== null) {
+                    startEnergyBar();
+                }
+            }
+
+            // Function to end the game
+            function endGame() {
+                clearInterval(gameInterval);
+                clearInterval(energyInterval);
+                document.getElementById('game-screen').classList.remove('visible');
+                document.getElementById('end-screen').classList.add('visible');
+                document.getElementById('final-score').innerText = score;
+                document.getElementById('final-time').innerText = totalGameTime;
+                const resultsContainer = document.getElementById('results');
+                resultsContainer.innerHTML = '<h2>정답 확인</h2>';
+                shuffledQuestions.forEach((q, index) => {
+                    resultsContainer.innerHTML += `<div class="result-item">${q.question} <br><strong>정답:</strong> ${q.correctAnswer}</div>`;
+                });
+            }
+
+            // Function to restart the game
+            window.restartGame = function() {
+                score = 0;
+                lives = 3;
+                totalGameTime = 0;
+                currentQuestionIndex = 0;
+                shuffledQuestions = shuffleArray([...problems]); // 문제 목록 다시 섞기
+                document.getElementById('end-screen').classList.remove('visible');
+                document.getElementById('game-screen').classList.add('visible');
+                updateStats();
+                renderQuestion();
+                if (timeLimit !== null) {
+                    startEnergyBar();
+                    document.getElementById('energy-bar').style.display = 'block'; // 에너지 바 표시
+                } else {
+                    document.getElementById('energy-bar').style.display = 'none'; // 에너지 바 숨기기
+                }
+                gameStartTime = Date.now();
+                gameInterval = setInterval(() => {
+                    totalGameTime = Math.floor((Date.now() - gameStartTime) / 1000);
+                    document.getElementById('game-time').innerText = totalGameTime;
+                }, 1000);
+            }
+
+            // Function to start the energy bar
+            function startEnergyBar() {
+                clearInterval(energyInterval);
+                let energyBar = document.getElementById('energy');
+                let width = 100;
+                let decrement = 100 / (timeLimit * 10); // 에너지 바 업데이트 간격에 따라 조정
+
+                energyBar.style.width = '100%';
+                energyInterval = setInterval(() => {
+                    width -= decrement;
+                    if (width <= 0) {
+                        clearInterval(energyInterval);
+                        lives--;
+                        const currentQuestion = shuffledQuestions[currentQuestionIndex];
+                        let correctAnswerDisplay = currentQuestion.correctAnswer;
+                        document.getElementById('message').innerHTML = `시간 초과! 정답은 <strong>${correctAnswerDisplay}</strong>입니다. 😮`;
+                        updateStats();
+                        disableOptions();
+                        document.getElementById('next-button').style.display = 'inline-block';
+                        if (lives <= 0) {
+                            endGame();
+                        }
+                    } else {
+                        energyBar.style.width = width + '%';
+                    }
+                }, 100); // 0.1초마다 에너지 바 업데이트
+            }
+        };
+    </script>
+
+</body>
+</html>
